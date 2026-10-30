@@ -18,7 +18,8 @@
         "type": "postback",
         "label": "電影查詢",
         "data": "menu:movies",
-        "displayText": "電影查詢"
+        "displayText": "電影查詢",
+        "inputOption": "openKeyboard"
       }
     },
     {
@@ -45,7 +46,8 @@
         "type": "postback",
         "label": "附近影院",
         "data": "menu:nearby",
-        "displayText": "附近影院"
+        "displayText": "附近影院",
+        "inputOption": "closeRichMenu"
       }
     },
     {

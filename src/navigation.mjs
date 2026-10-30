@@ -31,9 +31,9 @@ export class MovieNavigation {
 export function richMenuDefinition(navigation) {
   if (!navigation.liffUrl) throw new Error('啟用 Rich Menu 前必須設定正式票匣入口');
   return { size: { width: 2500, height: 1686 }, selected: true, name: 'Zona Movie 05 — 四格選單', chatBarText: '電影夥伴選單', areas: [
-    { bounds: { x: 0, y: 0, width: 1250, height: 843 }, action: { type: 'postback', label: '電影查詢', data: 'menu:movies', displayText: '電影查詢' } },
+    { bounds: { x: 0, y: 0, width: 1250, height: 843 }, action: { type: 'postback', label: '電影查詢', data: 'menu:movies', displayText: '電影查詢', inputOption: 'openKeyboard' } },
     { bounds: { x: 1250, y: 0, width: 1250, height: 843 }, action: { type: 'uri', label: '我的票匣', uri: navigation.open('shelf').actions[0].uri } },
-    { bounds: { x: 0, y: 843, width: 1250, height: 843 }, action: { type: 'postback', label: '附近影院', data: 'menu:nearby', displayText: '附近影院' } },
+    { bounds: { x: 0, y: 843, width: 1250, height: 843 }, action: { type: 'postback', label: '附近影院', data: 'menu:nearby', displayText: '附近影院', inputOption: 'closeRichMenu' } },
     { bounds: { x: 1250, y: 843, width: 1250, height: 843 }, action: { type: 'uri', label: '記錄心得', uri: navigation.open('new_ticket').actions[0].uri } },
   ] };
 }
