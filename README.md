@@ -1,21 +1,22 @@
 # 電影夥伴 Bot 05：四格 Rich Menu × Google ADK
 
-讓使用者打開 Zona Movie 聊天室，就能找到查電影、私人票匣、附近影院與記錄心得。
+讓使用者打開 Zona Movie 聊天室，就能找到查電影、私人票匣、附近影院與偏好推薦。
 
 | 電影查詢 | 我的票匣 |
 | --- | --- |
-| 附近影院 | 記錄心得 |
+| 附近影院 | 幫我挑電影 |
 
 ![四格 Rich Menu](assets/richmenu.png)
 
 ## 和 Google ADK 的關係
 
-沿用 Bot 04 的 `MovieCompanion`、`LlmAgent`、`InMemoryRunner` 與電影／場次／地圖工具，新增 **`open_movie_feature` FunctionTool**，提供四種 feature：`movies`、`shelf`、`nearby`、`new_ticket`。
+沿用 Bot 04 的 `MovieCompanion`、`LlmAgent`、`InMemoryRunner` 與電影／場次／地圖工具，新增 **`open_movie_feature` FunctionTool**，選單提供 `movies`、`shelf`、`nearby`、`recommend`；另保留 `new_ticket` 供聊天開啟新增表單。
 
 - 電影查詢：Rich Menu postback 經已驗簽 webhook 交給 ADK，呼叫功能入口工具；接續輸入片名後使用原有電影工具。
 - 附近影院：同樣經 ADK 提供位置分享 quick reply 或地標引導；實際位置事件仍交給 ADK 的 `nearby_cinemas` 工具與 Google Maps。
 - 我的票匣：Rich Menu 直接開啟正式 MINI App；ADK 在對話中也能透過 `open_movie_feature(shelf)` 提供相同入口。
-- 記錄心得：Rich Menu 直接開啟 `?action=new`，登入後自動打開新增票根表單；ADK 也能透過 `open_movie_feature(new_ticket)` 提供相同連結。
+- 幫我挑電影：postback 經 ADK `open_movie_feature(recommend)` 詢問心情／類型，之後由 `recommend_movies` 查 TMDB 並篩選最多三部，附類型配對原因與來源。
+- 記錄心得：在我的票匣裡新增，聊天也保留 `open_movie_feature(new_ticket)` 的 `?action=new` 入口。
 
 URI 按鈕由 LINE 直接開啟網頁，點擊本身不會觸發模型。私人票匣 CRUD 保留一般 API 與 LINE 後端驗證；網址由程式產生，模型不能指定其他人的 actor、偽造登入或自動儲存心得。完整資料的聊天記錄仍使用 `prepare_ticket` 草稿及使用者確認。
 
@@ -85,3 +86,5 @@ python3 scripts/render-richmenu.py --font /path/to/traditional-chinese-font.ttc
 ```
 
 [部署](docs/deployment.md) · [LINE / MINI App 設定](docs/liff-setup.md) · [隱私](docs/privacy.md) · [資料來源](docs/credits.md)
+
+推薦流程、資料限制與驗證方式見 [推薦功能說明](docs/recommendations.md)。

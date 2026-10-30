@@ -18,7 +18,7 @@ def ellipse(xy,fill=None,outline=None,width=7):draw.ellipse(tuple(int(v*scale) f
 def text(x,y,value,size,color):
  font=ImageFont.truetype(font_path,size*scale)
  draw.text((x*scale,y*scale),value,font=font,fill=color,anchor='mm')
-tiles=[(0,0,'#f6f4ed','#243d34','電影查詢','找簡介、影評與場次','EXPLORE FILMS'),(1250,0,'#243d34','#fffef5','我的票匣','翻閱你的電影回憶','YOUR COLLECTION'),(0,843,'#e6eadc','#243d34','附近影院','從你的位置開始找','FIND NEARBY'),(1250,843,'#b85e3f','#fffef5','記錄心得','留下散場後的心情','SAVE A MEMORY')]
+tiles=[(0,0,'#f6f4ed','#243d34','電影查詢','找簡介、影評與場次','EXPLORE FILMS'),(1250,0,'#243d34','#fffef5','我的票匣','翻閱你的電影回憶','YOUR COLLECTION'),(0,843,'#e6eadc','#243d34','附近影院','從你的位置開始找','FIND NEARBY'),(1250,843,'#b85e3f','#fffef5','幫我挑電影','依心情，找到想看的電影','PICK A FILM')]
 for i,(x,y,bg,fg,title,subtitle,eyebrow) in enumerate(tiles):
  box((x,y,x+1250,y+843),fill=bg,radius=0)
  text(x+92,y+76,f'0{i+1}',35,fg)
@@ -41,9 +41,10 @@ for i,(x,y,bg,fg,title,subtitle,eyebrow) in enumerate(tiles):
   line([(cx-69,cy+10),(cx,cy+108),(cx+69,cy+10)],fg,8)
   ellipse((cx-26,cy-54,cx+26,cy-2),outline=fg,width=7)
  else:
-  box((cx-86,cy-87,cx+66,cy+88),outline=fg,width=8,radius=12)
-  for dy in [-40,0,40]:line([(cx-51,cy+dy),(cx+10,cy+dy)],fg,6)
-  line([(cx+18,cy+54),(cx+103,cy-45),(cx+124,cy-24),(cx+39,cy+75),(cx+12,cy+82),(cx+18,cy+54)],fg,7)
+  box((cx-100,cy-70,cx+100,cy+70),outline=fg,width=8,radius=18)
+  for dx in [-76,58]:
+   for dy in [-46,16]:box((cx+dx,cy+dy,cx+dx+18,cy+dy+29),fill=fg,radius=2)
+  line([(cx,cy-45),(cx+14,cy-12),(cx+49,cy-9),(cx+23,cy+14),(cx+31,cy+47),(cx,cy+29),(cx-31,cy+47),(cx-23,cy+14),(cx-49,cy-9),(cx-14,cy-12),(cx,cy-45)],fg,6)
  text(cx,y+452,title,94,fg);text(cx,y+575,subtitle,41,fg)
 line([(1250,0),(1250,1686)],'#d3d8cb',3);line([(0,843),(2500,843)],'#d3d8cb',3)
 image=image.resize((2500,1686),Image.Resampling.LANCZOS)

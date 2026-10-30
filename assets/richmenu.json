@@ -58,9 +58,11 @@
         "height": 843
       },
       "action": {
-        "type": "uri",
-        "label": "記錄心得",
-        "uri": "https://miniapp.line.me/2012222034-AVyO2nk3?action=new"
+        "type": "postback",
+        "label": "幫我挑電影",
+        "data": "menu:recommend",
+        "displayText": "幫我挑電影",
+        "inputOption": "openKeyboard"
       }
     }
   ]

@@ -18,7 +18,7 @@ export function createWebhookServer({ secret, store, bot, reply, shelf, navigati
           const event = job.event, actor = event.source.userId;
           let result;
           if (event.type === 'follow') result = { text: '我是你的電影夥伴！可傳送 LINE 位置，或說「台北車站附近有什麼電影？」查附近影院。輸入「清除位置」清除定位與暫存對話。也可以問「信義威秀今晚有哪些片？」、「比較信義和西門威秀今晚場次」，也可查秀泰、國賓、新光、in89 等，問「台南有哪些影城？」或「影城清單下一頁」。部分場館只有圖片入口。還能查電影簡介、評論與記錄觀影票根，票根確認後才儲存。輸入「我的票匣」可開啟私人收藏、編輯心得；輸入「關於」可查看資料來源。' };
-          else if (event.type === 'postback' && ['menu:movies', 'menu:nearby'].includes(event.postback.data) && navigation) result = await bot.respond(actor, navigation.prompt(event.postback.data.slice(5)), job.id);
+          else if (event.type === 'postback' && ['menu:movies', 'menu:nearby', 'menu:recommend'].includes(event.postback.data) && navigation) result = await bot.respond(actor, navigation.prompt(event.postback.data.slice(5)), job.id);
           else if (event.type === 'postback') result = decisionReply(store, actor, event.postback.data);
           else if (event.message.type === 'location') result = await bot.respond(actor,
             '請找這個定位附近三公里內的電影院，並列出今天尚未開演的電影與場次。', job.id,

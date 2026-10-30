@@ -60,4 +60,19 @@ export class MovieSource {
       reviews: result.body.results.slice(0, 3).map(review => ({ author: review.author, date: review.created_at, url: review.url })),
     };
   }
+  async recommendationCandidates() {
+    if (this.mode === 'demo') return { status: 'demo', source: '虛構示範資料', movies: fixtures.map(movie => ({ ...movie, genreIds: [18, 35], popularity: 0 })) };
+    const pages = await Promise.all([1, 2].map(page => this.request('movie/now_playing', { region: 'TW', page })));
+    const available = pages.filter(page => page.status === 'ok');
+    if (!available.length) return { status: 'unavailable', movies: [] };
+    const seen = new Set();
+    const movies = available.flatMap(page => page.body.results).slice(0, 40).filter(movie => {
+      if (!Number.isSafeInteger(movie.id) || movie.id < 1 || typeof movie.title !== 'string' || !movie.title.trim() || movie.adult === true || seen.has(movie.id)) return false;
+      seen.add(movie.id); return true;
+    }).map(movie => ({ id: movie.id, title: movie.title.slice(0, 150),
+      genreIds: Array.isArray(movie.genre_ids) ? movie.genre_ids.filter(Number.isSafeInteger) : [],
+      popularity: Number.isFinite(movie.popularity) ? movie.popularity : 0,
+      url: `https://www.themoviedb.org/movie/${movie.id}` }));
+    return { status: 'ok', source: 'TMDB', partial: available.length < pages.length, retrievedAt: new Date().toISOString(), movies };
+  }
 }

@@ -6,6 +6,7 @@ import { showtimeLinks } from './movies.mjs';
 import { tmdbAttribution } from './attribution.mjs';
 import { CinemaSource, formatCinemaSchedules, listCinemas, formatCinemaList } from './cinema.mjs';
 import { NearbyCinemaSource, formatNearby } from './nearby.mjs';
+import { recommendationSchema, recommendMovies, formatRecommendations } from './recommendations.mjs';
 import { validCoordinates } from './maps.mjs';
 
 export function createMovieAgent({ actor, turn, store, movies, cinema, nearby, navigation, model, trace = () => {} }) {
@@ -32,13 +33,14 @@ export function createMovieAgent({ actor, turn, store, movies, cinema, nearby, n
       '今天的日期：' + new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Taipei' }).format(new Date()) + '（Asia/Taipei）。',
       '使用 now_playing 查上映、search_movies 查片名與簡介，先查出電影 ID 才能查評論。',
       ...(navigation ? [
-        'open_movie_feature 提供電影查詢 movies、私人票匣 shelf、附近影院 nearby、記錄心得 new_ticket 四個入口。使用者只想開啟功能或 Rich Menu 引導時，必須呼叫這個工具，不編造網址、不先查資料、不建立票根。',
+        'open_movie_feature 提供電影查詢 movies、私人票匣 shelf、附近影院 nearby、幫我挑電影 recommend，以及記錄心得 new_ticket 入口。使用者只想開啟功能或 Rich Menu 引導時，必須呼叫這個工具，不編造網址、不先查資料、不建立票根。',
         '使用者說我的票匣、打開收藏時用 shelf；想開表單、記錄心得但尚未提供完整內容時用 new_ticket。若已明確提供片名、觀影日期與心得並要求用聊天建立草稿，仍使用 prepare_ticket，保留確認步驟。',
         '使用者只是詢問如何傳位置或開啟附近影院入口時用 open_movie_feature nearby；已提供地址、地標或 LINE 定位要求查詢時，使用 nearby_cinemas。',
       ] : []),
       movies.mode === 'tmdb'
         ? '目前資料模式是 tmdb：工具會呼叫真正的 TMDB API，status=ok、source=TMDB 的結果是真實資料，不是示範或虛構電影。回覆不須提及示範模式。'
         : '目前資料模式是 demo：電影工具只提供虛構示範資料，務必明確標示，不可宣稱為目前上映。',
+      '推薦電影必須使用 recommend_movies。只開啟幫我挑電影入口先用 open_movie_feature recommend；尚無心情或類型時先問一個簡短問題。已說出偏好就查詢；明確說隨便推薦可用 any。參考對話中已提供的類型與排除限制，追問「不要恐怖」時保留先前偏好。推薦結果由程式輸出，不自行增補片名、評價、年齡分級或保證適合同行者。',
       '工具失敗或無資料要如實說明，不可用自己的知識或示範資料補上。',
       '使用者提供地址、地標、LINE 定位或問附近電影院，使用 nearby_cinemas。locationQuery 只填使用者提供的城市／地址／地標；使用 LINE 定位或沿用定位時填空字串，座標由程式綁定，不可自行猜座標或地點。',
       'nearby_cinemas 預設範圍 3000 公尺、列 3 間、含今天尚未開演場次。只想找影院時 includeShowtimes=false；指定幾公里需換算公尺，最多 10000。日期與時段規則同 cinema_schedule。',
@@ -64,7 +66,7 @@ export function createMovieAgent({ actor, turn, store, movies, cinema, nearby, n
     ].join('\n'),
     generateContentConfig: { httpOptions: { timeout: 20_000, retryOptions: { attempts: 1 } } },
     tools: [
-      ...(navigation ? [tool('open_movie_feature', '提供 Rich Menu 四項功能的下一步或正式 MINI App 入口。網址由程式設定，不能指定其他使用者或寫入票根。', z.object({ feature: z.enum(['movies', 'shelf', 'nearby', 'new_ticket']) }), ({ feature }) => {
+      ...(navigation ? [tool('open_movie_feature', '提供 Rich Menu 四項功能的下一步或正式 MINI App 入口。網址由程式設定，不能指定其他使用者或寫入票根。', z.object({ feature: z.enum(['movies', 'shelf', 'nearby', 'recommend', 'new_ticket']) }), ({ feature }) => {
         turn.navigationResult = navigation.open(feature);
         return turn.navigationResult;
       })] : []),
@@ -82,6 +84,10 @@ export function createMovieAgent({ actor, turn, store, movies, cinema, nearby, n
         turn.nearbyPromise ||= nearby.search(input, turn.location);
         turn.nearbyResult = await turn.nearbyPromise;
         return turn.nearbyResult;
+      }),
+      tool('recommend_movies', '依心情、想看與排除的類型，查 TMDB 台灣上映候選並篩選最多三部；不提供場次、票價或分級保證。', recommendationSchema, async input => {
+        turn.recommendationResult = await recommendMovies(movies, input);
+        return turn.recommendationResult;
       }),
       tool('now_playing', '查詢台灣上映候選電影；示範模式只回虛構資料，非影城場次。', z.object({}), () => movies.movies()),
       tool('search_movies', '用片名查電影、簡介與 TMDB ID。', z.object({ query: z.string().min(1).max(150) }), ({ query }) => movies.movies(query)),
@@ -165,6 +171,7 @@ export class MovieCompanion {
       session.turn.nearbyResult = null;
       session.turn.nearbyPromise = null;
       session.turn.navigationResult = null;
+      session.turn.recommendationResult = null;
       if (context.location) {
         clearTimeout(session.locationTimer);
         session.location = { latitude: context.location.latitude, longitude: context.location.longitude, expires: this.now() + 15 * 60_000 };
@@ -199,15 +206,18 @@ export class MovieCompanion {
         return { text: formatCinemaSchedules(session.turn.cinemaResults, extra ? 2600 : 3600) + extra + attribution, draft: session.turn.draft };
       }
       if (session.turn.cinemaListing) return { text: formatCinemaList(session.turn.cinemaListing), draft: session.turn.draft };
+      if (session.turn.recommendationResult) return { text: formatRecommendations(session.turn.recommendationResult) };
       if (session.turn.navigationResult) return session.turn.navigationResult;
       return { text: prefix + (answer || '這次沒有取得完整回覆，請再試一次。').slice(0, 3000) + attribution, draft: session.turn.draft };
     } catch (error) {
       this.onError(error);
       const nearbyResult = this.sessions.get(actor)?.turn.nearbyResult;
+      const recommendationResult = this.sessions.get(actor)?.turn.recommendationResult;
       const navigationResult = this.sessions.get(actor)?.turn.navigationResult;
       clearTimeout(this.sessions.get(actor)?.locationTimer);
       this.sessions.delete(actor);
       if (nearbyResult) return { text: formatNearby(nearbyResult) };
+      if (recommendationResult) return { text: formatRecommendations(recommendationResult) };
       if (navigationResult) return navigationResult;
       return { text: 'AI 這次連線失敗或逾時，請稍後再試。尚未替你儲存票根；已儲存的紀錄仍保留。' };
     } finally { this.active.delete(actor); }

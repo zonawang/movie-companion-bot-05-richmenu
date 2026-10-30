@@ -31,7 +31,8 @@ test('four menu areas cover the image exactly, and authenticated MINI App action
   }
   assert.equal(menu.areas[0].action.data, 'menu:movies'); assert.equal(menu.areas[2].action.data, 'menu:nearby');
   assert.equal(menu.areas[1].action.uri, navigation.liffUrl);
-  assert.equal(menu.areas[3].action.uri, navigation.liffUrl + '?action=new');
+  assert.equal(menu.areas[3].action.data, 'menu:recommend');
+  assert.equal(navigation.open('new_ticket').actions[0].uri, navigation.liffUrl + '?action=new');
   assert.throws(() => new MovieNavigation({ liffUrl: 'https://attacker.invalid/?userId=other' }));
   assert.throws(() => richMenuDefinition(new MovieNavigation()));
 });
@@ -47,20 +48,20 @@ for (const feature of menuFeatures) test(`real ADK Runner invokes open_movie_fea
     if (feature === 'new_ticket') assert.match(result.actions[0].uri, /\?action=new$/);
   } finally { store.close(); }
 });
-test('signed Rich Menu postbacks run through ADK, preserve actor and deduplicate events', async t => {
-  const store = new Store(), calls = [], model = new NavigationModel('nearby');
+for (const feature of ['nearby', 'recommend']) test(`signed ${feature} postbacks run through ADK, preserve actor and deduplicate events`, async t => {
+  const store = new Store(), calls = [], model = new NavigationModel(feature);
   const bot = new MovieCompanion({ store, movies: new MovieSource(), model, navigation, trace: name => calls.push(name) });
   const replies = []; const server = createWebhookServer({ secret: 'fixture-secret', store, bot, navigation, reply: async (token, messages) => replies.push(messages) });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(async () => { await new Promise(resolve => server.close(resolve)); store.close(); });
   const base = `http://127.0.0.1:${server.address().port}`;
-  const event = { type: 'postback', webhookEventId: randomUUID(), replyToken: 'fixture-reply', source: { type: 'user', userId: 'actor-A' }, postback: { data: 'menu:nearby' } };
+  const event = { type: 'postback', webhookEventId: randomUUID(), replyToken: 'fixture-reply', source: { type: 'user', userId: 'actor-A' }, postback: { data: 'menu:' + feature } };
   const raw = JSON.stringify({ events: [event] }); const signature = createHmac('sha256', 'fixture-secret').update(raw).digest('base64');
   assert.equal((await fetch(base + '/webhook', { method: 'POST', body: raw })).status, 401);
   for (let i = 0; i < 2; i++) assert.equal((await fetch(base + '/webhook', { method: 'POST', headers: { 'x-line-signature': signature }, body: raw })).status, 200);
   await new Promise(resolve => setTimeout(resolve, 60));
   assert.deepEqual(calls, ['open_movie_feature']); assert.equal(replies.length, 1);
-  assert.equal(replies[0][0].quickReply.items[0].action.type, 'location');
+  assert.equal(replies[0][0].quickReply.items[0].action.type, feature === 'nearby' ? 'location' : 'message');
   assert.equal(store.list('actor-A').length, 0);
 });
 

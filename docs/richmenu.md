@@ -9,7 +9,7 @@
 | 左上 | 電影查詢 | postback `menu:movies` | ADK `open_movie_feature(movies)`，引導片名／上映候選／影城場次；後續呼叫原電影工具 |
 | 右上 | 我的票匣 | URI | 直接開 Published MINI App；對話中也能由 ADK `open_movie_feature(shelf)` 取得相同網址 |
 | 左下 | 附近影院 | postback `menu:nearby` | ADK `open_movie_feature(nearby)` 提供位置分享按鈕；收到位置後仍由 ADK 呼叫 `nearby_cinemas` |
-| 右下 | 記錄心得 | URI `?action=new` | 登入後開新增票根表單；對話中由 ADK `open_movie_feature(new_ticket)` 提供連結 |
+| 右下 | 幫我挑電影 | postback `menu:recommend` | ADK `open_movie_feature(recommend)` 引導偏好，再呼叫 `recommend_movies` 查資料與篩選 |
 
 查詢／引導使用 `InMemoryRunner` 與 `FunctionTool`，不把 Rich Menu 當作單純的關鍵字固定回覆。入口工具的文案、quick replies 與網址由程式控制；不讓模型憑空產生可點擊的身分驗證連結。
 
