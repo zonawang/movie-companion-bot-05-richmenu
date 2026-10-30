@@ -23,3 +23,13 @@ node --env-file=/etc/movie-bot/environment scripts/richmenu.mjs rollback --state
 ```
 
 `verification-05.md` 記錄的是首次上線的舊版四格選單；本文件描述推薦改版。
+
+## 2026-10-30 正式環境驗證
+
+- 部署來源：`71645d9f81641359483d7fe70a41e9265bf9b3d8`；[GitHub CI](https://github.com/zonawang/movie-companion-bot-05-richmenu/actions/runs/41049117708) 的 100 項測試與 Chromium 票匣流程全部通過，並檢查新增票根表單截圖。
+- 真正 Gemini / Google ADK / TMDB 實測：先開啟推薦引導，再推薦喜劇、排除恐怖，取得三部候選；下一輪改成動作片時保留排除恐怖限制，同樣取得三部。工具序列為 `open_movie_feature → recommend_movies → recommend_movies`。使用隔離的記憶體資料庫，票根寫入數為零。
+- Zona Movie 的 LINE 預設選單已切換為 `richmenu-84a49e99500597707f98168075c09c7f`，核對四格定義與下載圖片 SHA-256：`947a02120245d7343ab495256eba637cf927cef5315b83bc5aeeafd1933bb810`。
+- 前版選單 `richmenu-64267f4e8b458bcfbae74a0d20df99c3` 保留，checkpoint 記錄可供回復。
+- 四種入口訊息經 LINE `validate/reply` 全部回傳 200；沒有向使用者推播測試訊息。簽章空事件 Webhook 回傳 200。
+- 正式服務為 active，公開 `/health` 與 `/tickets/` 回傳 200。更新前後兩筆正式票根的完整資料雜湊相同，SQLite `quick_check=ok`。更新前備份為 `/var/lib/movie-bot/pre-recommend-20261030.sqlite`。
+- 尚未由使用者在手機上確認新版選單；LINE API 的設定與內容已核對完成。
